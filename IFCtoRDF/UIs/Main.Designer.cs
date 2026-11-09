@@ -28,8 +28,11 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Main));
             this.buttonConvertIFCtoRDF = new System.Windows.Forms.Button();
             this.groupBoxSetting = new System.Windows.Forms.GroupBox();
+            this.labelTranlateKey = new System.Windows.Forms.Label();
+            this.textBoxTranslateAPIKey = new System.Windows.Forms.TextBox();
             this.checkBoxTranslate = new System.Windows.Forms.CheckBox();
             this.textBoxNS = new System.Windows.Forms.TextBox();
             this.textBoxNSShort = new System.Windows.Forms.TextBox();
@@ -37,6 +40,8 @@
             this.label1 = new System.Windows.Forms.Label();
             this.checkBoxDetailedBOT = new System.Windows.Forms.CheckBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.textBoxModel = new System.Windows.Forms.TextBox();
+            this.labelModel = new System.Windows.Forms.Label();
             this.labelAPIKey = new System.Windows.Forms.Label();
             this.textBoxLLMAPIKey = new System.Windows.Forms.TextBox();
             this.checkBoxSkip = new System.Windows.Forms.CheckBox();
@@ -46,11 +51,9 @@
             this.numericUpDownConfidence = new System.Windows.Forms.NumericUpDown();
             this.buttonTTLReasoning = new System.Windows.Forms.Button();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
-            this.labelModel = new System.Windows.Forms.Label();
-            this.textBoxModel = new System.Windows.Forms.TextBox();
             this.progressBar = new System.Windows.Forms.ProgressBar();
-            this.textBoxTranslateAPIKey = new System.Windows.Forms.TextBox();
-            this.labelTranlateKey = new System.Windows.Forms.Label();
+            this.buttonCostEstimator = new System.Windows.Forms.Button();
+            this.label5 = new System.Windows.Forms.Label();
             this.groupBoxSetting.SuspendLayout();
             this.groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownConfidence)).BeginInit();
@@ -64,7 +67,7 @@
             // 
             this.buttonConvertIFCtoRDF.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonConvertIFCtoRDF.Location = new System.Drawing.Point(3, 143);
+            this.buttonConvertIFCtoRDF.Location = new System.Drawing.Point(3, 150);
             this.buttonConvertIFCtoRDF.Name = "buttonConvertIFCtoRDF";
             this.buttonConvertIFCtoRDF.Size = new System.Drawing.Size(391, 23);
             this.buttonConvertIFCtoRDF.TabIndex = 0;
@@ -87,10 +90,30 @@
             this.groupBoxSetting.Controls.Add(this.checkBoxDetailedBOT);
             this.groupBoxSetting.Location = new System.Drawing.Point(3, 3);
             this.groupBoxSetting.Name = "groupBoxSetting";
-            this.groupBoxSetting.Size = new System.Drawing.Size(391, 134);
+            this.groupBoxSetting.Size = new System.Drawing.Size(391, 141);
             this.groupBoxSetting.TabIndex = 1;
             this.groupBoxSetting.TabStop = false;
             this.groupBoxSetting.Text = "Converter Settings";
+            // 
+            // labelTranlateKey
+            // 
+            this.labelTranlateKey.AutoSize = true;
+            this.labelTranlateKey.Location = new System.Drawing.Point(104, 75);
+            this.labelTranlateKey.Name = "labelTranlateKey";
+            this.labelTranlateKey.Size = new System.Drawing.Size(114, 13);
+            this.labelTranlateKey.TabIndex = 26;
+            this.labelTranlateKey.Text = "AzureTranslatorApiKey";
+            this.labelTranlateKey.Visible = false;
+            // 
+            // textBoxTranslateAPIKey
+            // 
+            this.textBoxTranslateAPIKey.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.textBoxTranslateAPIKey.Location = new System.Drawing.Point(224, 71);
+            this.textBoxTranslateAPIKey.Name = "textBoxTranslateAPIKey";
+            this.textBoxTranslateAPIKey.Size = new System.Drawing.Size(159, 20);
+            this.textBoxTranslateAPIKey.TabIndex = 25;
+            this.textBoxTranslateAPIKey.Visible = false;
             // 
             // checkBoxTranslate
             // 
@@ -154,6 +177,8 @@
             this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBox1.Controls.Add(this.label5);
+            this.groupBox1.Controls.Add(this.buttonCostEstimator);
             this.groupBox1.Controls.Add(this.textBoxModel);
             this.groupBox1.Controls.Add(this.labelModel);
             this.groupBox1.Controls.Add(this.labelAPIKey);
@@ -165,10 +190,28 @@
             this.groupBox1.Controls.Add(this.numericUpDownConfidence);
             this.groupBox1.Location = new System.Drawing.Point(3, 3);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(391, 151);
+            this.groupBox1.Size = new System.Drawing.Size(391, 241);
             this.groupBox1.TabIndex = 2;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "LLM Settings";
+            // 
+            // textBoxModel
+            // 
+            this.textBoxModel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.textBoxModel.Location = new System.Drawing.Point(71, 46);
+            this.textBoxModel.Name = "textBoxModel";
+            this.textBoxModel.Size = new System.Drawing.Size(314, 20);
+            this.textBoxModel.TabIndex = 35;
+            // 
+            // labelModel
+            // 
+            this.labelModel.AutoSize = true;
+            this.labelModel.Location = new System.Drawing.Point(6, 49);
+            this.labelModel.Name = "labelModel";
+            this.labelModel.Size = new System.Drawing.Size(36, 13);
+            this.labelModel.TabIndex = 34;
+            this.labelModel.Text = "Model";
             // 
             // labelAPIKey
             // 
@@ -194,7 +237,7 @@
             this.checkBoxSkip.AutoSize = true;
             this.checkBoxSkip.Checked = true;
             this.checkBoxSkip.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBoxSkip.Location = new System.Drawing.Point(6, 128);
+            this.checkBoxSkip.Location = new System.Drawing.Point(6, 218);
             this.checkBoxSkip.Name = "checkBoxSkip";
             this.checkBoxSkip.Size = new System.Drawing.Size(146, 17);
             this.checkBoxSkip.TabIndex = 31;
@@ -225,7 +268,7 @@
             // 
             this.label4.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(6, 104);
+            this.label4.Location = new System.Drawing.Point(6, 194);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(144, 13);
             this.label4.TabIndex = 29;
@@ -240,7 +283,7 @@
             0,
             0,
             131072});
-            this.numericUpDownConfidence.Location = new System.Drawing.Point(156, 102);
+            this.numericUpDownConfidence.Location = new System.Drawing.Point(156, 192);
             this.numericUpDownConfidence.Maximum = new decimal(new int[] {
             1,
             0,
@@ -250,17 +293,12 @@
             this.numericUpDownConfidence.Size = new System.Drawing.Size(55, 20);
             this.numericUpDownConfidence.TabIndex = 28;
             this.numericUpDownConfidence.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
-            this.numericUpDownConfidence.Value = new decimal(new int[] {
-            5,
-            0,
-            0,
-            65536});
             // 
             // buttonTTLReasoning
             // 
             this.buttonTTLReasoning.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonTTLReasoning.Location = new System.Drawing.Point(3, 160);
+            this.buttonTTLReasoning.Location = new System.Drawing.Point(3, 250);
             this.buttonTTLReasoning.Name = "buttonTTLReasoning";
             this.buttonTTLReasoning.Size = new System.Drawing.Size(391, 23);
             this.buttonTTLReasoning.TabIndex = 3;
@@ -286,62 +324,46 @@
             // 
             this.splitContainer1.Panel2.Controls.Add(this.groupBox1);
             this.splitContainer1.Panel2.Controls.Add(this.buttonTTLReasoning);
-            this.splitContainer1.Size = new System.Drawing.Size(398, 359);
-            this.splitContainer1.SplitterDistance = 169;
+            this.splitContainer1.Size = new System.Drawing.Size(398, 456);
+            this.splitContainer1.SplitterDistance = 176;
             this.splitContainer1.TabIndex = 4;
-            // 
-            // labelModel
-            // 
-            this.labelModel.AutoSize = true;
-            this.labelModel.Location = new System.Drawing.Point(6, 49);
-            this.labelModel.Name = "labelModel";
-            this.labelModel.Size = new System.Drawing.Size(36, 13);
-            this.labelModel.TabIndex = 34;
-            this.labelModel.Text = "Model";
-            // 
-            // textBoxModel
-            // 
-            this.textBoxModel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBoxModel.Location = new System.Drawing.Point(71, 46);
-            this.textBoxModel.Name = "textBoxModel";
-            this.textBoxModel.Size = new System.Drawing.Size(314, 20);
-            this.textBoxModel.TabIndex = 35;
             // 
             // progressBar
             // 
             this.progressBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.progressBar.Location = new System.Drawing.Point(0, 365);
+            this.progressBar.Location = new System.Drawing.Point(0, 462);
             this.progressBar.Name = "progressBar";
             this.progressBar.Size = new System.Drawing.Size(394, 16);
             this.progressBar.TabIndex = 5;
             // 
-            // textBoxTranslateAPIKey
+            // buttonCostEstimator
             // 
-            this.textBoxTranslateAPIKey.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.buttonCostEstimator.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.buttonCostEstimator.Location = new System.Drawing.Point(292, 212);
+            this.buttonCostEstimator.Name = "buttonCostEstimator";
+            this.buttonCostEstimator.Size = new System.Drawing.Size(93, 23);
+            this.buttonCostEstimator.TabIndex = 36;
+            this.buttonCostEstimator.Text = "Cost Estimate";
+            this.buttonCostEstimator.UseVisualStyleBackColor = true;
+            this.buttonCostEstimator.Click += new System.EventHandler(this.buttonCostEstimator_Click);
+            // 
+            // label5
+            // 
+            this.label5.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBoxTranslateAPIKey.Location = new System.Drawing.Point(224, 71);
-            this.textBoxTranslateAPIKey.Name = "textBoxTranslateAPIKey";
-            this.textBoxTranslateAPIKey.Size = new System.Drawing.Size(159, 20);
-            this.textBoxTranslateAPIKey.TabIndex = 25;
-            this.textBoxTranslateAPIKey.Visible = false;
-            // 
-            // labelTranlateKey
-            // 
-            this.labelTranlateKey.AutoSize = true;
-            this.labelTranlateKey.Location = new System.Drawing.Point(104, 75);
-            this.labelTranlateKey.Name = "labelTranlateKey";
-            this.labelTranlateKey.Size = new System.Drawing.Size(114, 13);
-            this.labelTranlateKey.TabIndex = 26;
-            this.labelTranlateKey.Text = "AzureTranslatorApiKey";
-            this.labelTranlateKey.Visible = false;
+            this.label5.Location = new System.Drawing.Point(9, 95);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(374, 94);
+            this.label5.TabIndex = 37;
+            this.label5.Text = resources.GetString("label5.Text");
             // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(398, 382);
+            this.ClientSize = new System.Drawing.Size(398, 479);
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.splitContainer1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -387,6 +409,8 @@
         private System.Windows.Forms.ProgressBar progressBar;
         private System.Windows.Forms.TextBox textBoxTranslateAPIKey;
         private System.Windows.Forms.Label labelTranlateKey;
+        private System.Windows.Forms.Button buttonCostEstimator;
+        private System.Windows.Forms.Label label5;
     }
 }
 

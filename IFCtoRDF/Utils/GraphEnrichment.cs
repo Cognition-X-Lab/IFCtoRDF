@@ -17,7 +17,6 @@ namespace IFCtoRDF
 {
     public static class SemanticEnrichment
     {
-        public static int AINumber = 3;
         public static string baseURL = "http://127.0.0.1:8000";
         public static string generateURL = $"{baseURL}/generate";
         public static string rdfURL = $"{baseURL}/rdf";
@@ -25,6 +24,7 @@ namespace IFCtoRDF
         public static string similarityURL = $"{baseURL}/similarity";
         public static string dictionarySimilarityURL = $"{baseURL}/dictionary_similarity";
         public static string capacityURL = $"{baseURL}/capacity/simple";
+        public static int AINumber = 3;
 
         public static string openAI_URL = "https://api.openai.com/v1/responses";
         public static string openAI_model = "gpt-6-luna";
@@ -504,52 +504,18 @@ namespace IFCtoRDF
             var elemInfos = graph.TripleSearch(new List<string>() { elem }, null, null).Select(t => t.Item2 + " " + t.Item3).ToList(); //new List<string>() { "prop:description" }
             var request = new
             {
-                prompt = "Here is the element information of " + elem + ": " + string.Join("\n", elemInfos) + "\n\nPlease provide a list of construction tasks that need to be done in order to build this element.",
+                prompt = $"Element {elem}:\n{string.Join("\n", elemInfos)}",
                 prompt_information =
-                    // --- Role ---
-                    "You are an experienced construction planner and site engineer. " +
-                    "You will be given the RDF/IFC data for a single building element. " +
-
-                    // --- Task ---
-                    "Your job is to produce three things:\n" +
-                    "1. A short, plain-language description of what the element physically is.\n" +
-                    "2. Your best guess at the element's primary material, inferred from everything " +
-                    "in the data (IFC type, naming, dimensions, context). Give a material name or a short description.\n" +
-                    "3. An ordered list of the real-world, on-site construction tasks a crew would " +
-                    "perform to physically build and install this element.\n\n" +
-
-                    // --- How to think about tasks ---
-                    "Think in terms of actual field activities in their natural sequence: site preparation, " +
-                    "setting out/layout, formwork or framing, positioning and fixing, fastening or connections, " +
-                    "sealing/finishing, and inspection. Each task must be a concrete, actionable physical activity " +
-                    "that a worker could carry out on site, ordered logically from first to last.\n"+
-                    //"Here is an example of a task from the task catalogue:\n" +
-                    //"taskName: On-Site Welding.\n" +
-                    //"taskDescription \"This task, On-Site Welding, is the process of welding the on-site. "+
-                    //"The work is set out from the drawings, the required materials and components are prepared and positioned, then fixed or assembled in "+
-                    //"the correct sequence, and the finished result is checked to make sure it meets the specification.\n" +
-                    "\n" +
-
-                    // --- What to ignore ---
-                    "IMPORTANT: The input contains technical metadata (IFC type names, GUIDs, RDF tags such as " +
-                    "'ifc:...' or 'bot:...', coordinate tuples, and internal identifiers). These are NOT construction tasks. " +
-                    "Do NOT create tasks that merely restate a data field, such as 'assign ID', 'assign type', " +
-                    "or 'define element type'. Instead, interpret what the element actually is in the physical world " +
-                    "(e.g. an opening in a wall, a door, a window, a beam) and describe the labor, materials, tools, " +
-                    "and steps needed to construct or install it.\n\n" +
-
-                    // --- Output contract ---
-                    "Return ONLY a valid and compact JSON object, with no surrounding text, explanation, or markdown. " +
-                    "Use exactly this schema:\n" +
-                    "{\n" +
-                    "  \"description\": \"<string>\",\n" +
-                    "  \"material\": \"<string>\",\n" +
-                    "  \"tasks\": [\n" +
-                    "    { \"taskName\": \"<short action title>\", \"taskDescription\": \"<one or two sentences of physical work>\" }\n" +
-                    "  ]\n" +
-                    "}\n" +
-                    "Every task object must contain exactly the two string fields \"taskName\" and \"taskDescription\". " +
-                    "Strictly follow this format.",
+                        "Role: construction planner/site engineer. Input: RDF/IFC data for one building element.\n" +
+                        "Output:\n" +
+                        "1. description: what the element physically is (≤15 words).\n" +
+                        "2. material: most likely primary material, inferred from IFC type, name, dimensions, context (≤5 words).\n" +
+                        "3. tasks: ordered on-site physical activities to build/install it " +
+                        "(e.g. setting out, formwork/framing, positioning, fixing, connections, sealing/finishing, inspection). " +
+                        "Include only steps relevant to this element.\n" +
+                        "Ignore metadata (GUIDs, ifc:/bot: tags, coordinates, IDs); never create tasks that restate data fields.\n" +
+                        "Return ONLY compact JSON, no markdown:\n" +
+                        "{\"description\":\"\",\"material\":\"\",\"tasks\":[{\"taskName\":\"<≤5 words>\",\"taskDescription\":\"<1 sentence>\"}]}",
                 model = AINumber.ToString()
             };
 
@@ -705,7 +671,7 @@ namespace IFCtoRDF
                     JsonElement root = doc.RootElement;
 
                     Dictionary<string, double> resultValues = doc.RootElement.GetProperty("scores").EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetDouble());
-                    if (resultValues.Count == 0) 
+                    if (resultValues.Count == 0)
                         return;
 
                     var topResult = resultValues.OrderByDescending(kvp => kvp.Value).First();
@@ -839,7 +805,7 @@ namespace IFCtoRDF
             foreach (var trip in addTriples) { graph.AppendTripple(trip.Item1, trip.Item2, trip.Item3); }
         }
 
-        public static PromptResult PredictActivityDuration(BIMGraph graph, string activityID)
+        public static PromptResult PredictActivityDuration(BIMGraph graph, string activityID, bool includeLogic = false)
         {
             PromptResult promptResult = new PromptResult()
             {
@@ -870,29 +836,18 @@ namespace IFCtoRDF
 
             var request = new
             {
-                prompt = "Here is the element information of " + elem + ":\n" + string.Join("\n", elemInfos) + "\n\nHere is the task information of " + task + ":\n" + string.Join("\n", taskInfos) + "\n\nEstimate the duration required to perform task " + task + " for element " + elem + ".",
-                prompt_information = "You are an expert construction project and task estimator. You understand the construction activities required" +
-                " for different types of building elements and how the duration of an activity varies based on the characteristics of the building element, " +
-                "the activity, and the expected productivity of an average worker." +
-                "\nYou will be provided with:\n- A building element and its relevant characteristics." +
-                "\n- A construction task/activity and its relevant characteristics." +
-                "\n- Any additional information that may affect the task duration." +
-                "\n\nYour task is to estimate the duration required to perform the specified construction task for the given building element." +
-                "\n\nReturn your answer as a JSON object with exactly three fields:" +
-                "\n\n{" +
-                "\n  \"description\": <What the activity is doing on this particular element>," +
-                "\n  \"value\": <duration in hours>," +
-                "\n  \"logic\": \"<concise explanation of how the duration was estimated>\"" +
-                "\n}" +
-                "\n\nRequirements:" +
-                "\n- \"description\" must be a brief description of the activity being performed on the element." +
-                "\n- \"value\" must be a numerical value representing the estimated task duration in hours." +
-                "\n- \"logic\" must briefly explain the main factors used to determine the duration, such as element characteristics, quantity, dimensions, complexity, task requirements, or worker productivity." +
-                "\n- Base the estimate only on the information provided and reasonable construction knowledge." +
-                "\n- If the provided information is insufficient for an exact estimate, make a reasonable assumption and state that assumption in \"logic\"." +
-                "\n- Do not include units in \"value\"; the unit is always hours." +
-                "\n- Do not include any additional fields or text outside the JSON object." +
-                "\n- The JSON must be valid and parseable.",
+                prompt = $"Element {elem}:\n{string.Join("\n", elemInfos)}\n\nTask {task}:\n{string.Join("\n", taskInfos)}",
+                prompt_information =
+                    "Role: construction estimator. Estimate the duration in hours for one average crew to perform the given task on the given element.\n" +
+                    "Base it on the element's type, dimensions, quantity and complexity, the task's requirements, and typical productivity rates. " +
+                    "Ignore metadata (GUIDs, ifc:/bot: tags, coordinates, IDs).\n" +
+                    (includeLogic
+                        ? "If data is missing, assume typical values and state them in logic.\n"
+                        : "If data is missing, assume typical values.\n") +
+                    "Return ONLY compact JSON, no markdown:\n" +
+                    (includeLogic
+                        ? "{\"description\":\"<≤15 words: task on this element>\",\"value\":<number, hours>,\"logic\":\"<≤30 words: quantity × rate, key assumptions>\"}"
+                        : "{\"description\":\"<≤15 words: task on this element>\",\"value\":<number, hours>}"),
                 model = AINumber.ToString()
             };
 

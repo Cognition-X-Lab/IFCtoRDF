@@ -30,7 +30,7 @@ namespace IFCtoRDF.Utils
         {
             if (AzureTranslatorApiKey == null || AzureTranslatorApiKey.Length == 0)
             {
-                MessageBox.Show("Azure Translator API Key is not set.");
+                throw new Exception("Azure Translator API Key is not set.");
             }
             else
             {
@@ -44,7 +44,7 @@ namespace IFCtoRDF.Utils
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Message);
+                    throw new Exception(ex.Message);
                 }
             }
 

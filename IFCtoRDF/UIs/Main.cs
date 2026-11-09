@@ -19,6 +19,8 @@ namespace IFCtoRDF
         private string modelNamespace = "http://www.example.org#";
         private string modelNamespaceShort = "ex";
 
+        private int DEFAULT_PARALLEL_CAPACITY = 20;
+
         public Main()
         {
             InitializeComponent();
@@ -39,16 +41,22 @@ namespace IFCtoRDF
         {
             try
             {
-                OpenFileDialog ofd = new OpenFileDialog();
-                ofd.Filter = "IFC Files (*.ifc)|*.ifc";
-                ofd.Multiselect = true;
+                OpenFileDialog ofd = new OpenFileDialog
+                {
+                    Title = "Select IFC Files",
+                    Filter = "IFC Files (*.ifc)|*.ifc",
+                    Multiselect = true
+                };
                 if (ofd.ShowDialog() != DialogResult.OK)
                 {
                     return;
                 }
 
-                SaveFileDialog sfd = new SaveFileDialog();
-                sfd.Filter = "Turtle File (*.ttl)|*.ttl";
+                SaveFileDialog sfd = new SaveFileDialog
+                {
+                    Title = "Select TTL Save Location",
+                    Filter = "Turtle File (*.ttl)|*.ttl"
+                };
                 if (ofd.FileNames.Length == 1)
                 {
                     sfd.FileName = Path.GetFileName(Path.ChangeExtension(ofd.FileNames[0], ".ttl"));
@@ -164,9 +172,12 @@ namespace IFCtoRDF
         {
             try
             {
-                OpenFileDialog ofd = new OpenFileDialog();
-                ofd.Filter = "Turtle File (*.ttl)|*.ttl";
-                ofd.Multiselect = true;
+                OpenFileDialog ofd = new OpenFileDialog
+                {
+                    Title = "Select All Build, Construction, and Carbon Data Files",
+                    Filter = "Turtle File (*.ttl)|*.ttl",
+                    Multiselect = true
+                };
                 if (ofd.ShowDialog() != DialogResult.OK)
                 {
                     return;
@@ -181,9 +192,12 @@ namespace IFCtoRDF
                 double confidenceThreshold = (double)this.numericUpDownConfidence.Value;
                 bool skipExisting = checkBoxSkip.Checked;
 
-                SaveFileDialog sfd = new SaveFileDialog();
-                sfd.Filter = "Turtle File|*.ttl";
-                sfd.FileName = "MergedGraph.ttl";
+                SaveFileDialog sfd = new SaveFileDialog
+                {
+                    Title = "Select Merged TTL Save Location",
+                    Filter = "Turtle File|*.ttl",
+                    FileName = "MergedGraph.ttl"
+                };
                 if (sfd.ShowDialog() != DialogResult.OK)
                 {
                     return;
@@ -216,17 +230,22 @@ namespace IFCtoRDF
 
             object statsLock = new object();
 
-            int promptCount = 0;
-            int prompt_tokenCount = 0;
-            int result_tokenCount = 0;
-            double inferenceTime = 0;
+            int promptCountElement = 0;
+            int input_tokenCountElement = 0;
+            int output_tokenCountElement = 0;
+            double inferenceTimeElement = 0;
+
+            int total_promptCountActivity = 0;
+            int total_input_tokenCountActivity = 0;
+            int total_output_tokenCountActivity = 0;
+            double total_inferenceTimeActivity = 0;
 
             int completed = 0;
             IProgress<int> progress = new Progress<int>(value => this.progressBar.Value = value);
 
             model = (string)comboBoxAIModel.SelectedItem;
             SemanticEnrichment.MODEL = model;
-            int parallelCapacity = 5;
+            int parallelCapacity = DEFAULT_PARALLEL_CAPACITY;
             if (model == "PortableLLM")
             {
                 parallelCapacity = SemanticEnrichment.GetParallelCapacity();
@@ -245,8 +264,12 @@ namespace IFCtoRDF
             }
 
             // TEST
-            buildingElems = new List<string>() { buildingElems[0] };
+            //int testingRange = 10;
+            //buildingElems = buildingElems.GetRange(0, Math.Min(testingRange, buildingElems.Count));
+            //parallelCapacity = 1;
 
+            Stopwatch fullTimer = new Stopwatch();
+            fullTimer.Start();
             var options = new ParallelOptions { MaxDegreeOfParallelism = Math.Min(parallelCapacity, Math.Max(buildingElems.Count, 1)) };
             await Task.Run(() => Parallel.ForEach(buildingElems, options, elem =>
             {
@@ -264,32 +287,52 @@ namespace IFCtoRDF
 
                     lock (statsLock)
                     {
-                        promptCount += 1;
-                        prompt_tokenCount += elementDetailResult.prompt_token;
-                        result_tokenCount += elementDetailResult.response_token;
-                        inferenceTime += elementDetailResult.inference_time;
+                        promptCountElement += 1;
+                        input_tokenCountElement += elementDetailResult.prompt_token;
+                        output_tokenCountElement += elementDetailResult.response_token;
+                        inferenceTimeElement += elementDetailResult.inference_time;
                     }
 
                     SemanticEnrichment.FindClosestMatchingMaterial(graph, elem, materialDef, confidenceThreshold, "prop:guessedMaterial");
                     SemanticEnrichment.FindClosestMatchingRealTasks(graph, elem, constructionTaskDef, confidenceThreshold);
 
                     var activities = graph.TripleSearch(null, new List<string>() { "prop:forElement" }, new List<string>() { elem }).Select(t => t.Item1).ToList();
+
+                    int promptCountActivity = 0;
+                    int input_tokenCountActivity = 0;
+                    int output_tokenCountActivity = 0;
+                    double inferenceTimeActivity = 0;
                     foreach (var activity in activities)
                     {
                         PromptResult activityResult = SemanticEnrichment.PredictActivityDuration(graph, activity);
 
-                        lock (statsLock)
-                        {
-                            promptCount += 1;
-                            prompt_tokenCount += activityResult.prompt_token;
-                            result_tokenCount += activityResult.response_token;
-                            inferenceTime += activityResult.inference_time;
-                        }
+                        promptCountActivity += 1;
+                        input_tokenCountActivity += activityResult.prompt_token;
+                        output_tokenCountActivity += activityResult.response_token;
+                        inferenceTimeActivity += activityResult.inference_time;
+                    }
+
+                    lock (statsLock)
+                    {
+                        total_promptCountActivity += promptCountActivity;
+                        total_input_tokenCountActivity += input_tokenCountActivity;
+                        total_output_tokenCountActivity += output_tokenCountActivity;
+                        total_inferenceTimeActivity += inferenceTimeActivity;
                     }
 
                     graph.SaveDataFile(saveFileName);
 
-                    //Debug.Print($"Element: {elem} processed. Running Prompt Count: {promptCount}, Mean Prompt Tokens: {prompt_tokenCount / promptCount}, Mean Result Tokens: {result_tokenCount / promptCount}, Mean Inference Time: {inferenceTime / promptCount}");
+                    if (promptCountActivity > 0)
+                    {
+                        //Debug.Print($"Element {elem} processed.\n" +
+                        //    $"Element Input Tokens: {elementDetailResult.prompt_token}\n" +
+                        //    $"Element Output Tokens: {elementDetailResult.response_token}\n" +
+                        //    $"Element Inference Time: {elementDetailResult.inference_time}\n" +
+                        //    $"{promptCountActivity} Activities\n" +
+                        //    $"Mean Activity Input Tokens: {input_tokenCountActivity / promptCountActivity}\n" +
+                        //    $"Mean Activity Output Tokens: {output_tokenCountActivity / promptCountActivity}\n" +
+                        //    $"Mean Activity Inference Time: {inferenceTimeActivity / promptCountActivity}");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -303,14 +346,30 @@ namespace IFCtoRDF
 
             progressBar.Value = progressBar.Maximum;
 
-            if (promptCount > 0)
+            string messageString = "";
+            if (promptCountElement > 0 && total_promptCountActivity > 0)
             {
-                MessageBox.Show($"Element: {buildingElems.Count} processed.\nPrompt Count: {promptCount}\nMean Prompt Tokens: {(double)prompt_tokenCount / promptCount}\nMean Result Tokens: {(double)result_tokenCount / promptCount}\nMean Inference Time: {(double)inferenceTime / promptCount}");
+                messageString = $"{promptCountElement} Elements processed.\n" +
+                    $"Mean Element Input Tokens: {(double)input_tokenCountElement / promptCountElement}\n" +
+                    $"Mean Element Output Tokens: {(double)output_tokenCountElement / promptCountElement}\n" +
+                    $"Mean Element Inference Time: {(double)inferenceTimeElement / promptCountElement}\n" +
+                    $"Mean Activities per Element {(double)total_promptCountActivity / promptCountElement}\n" +
+                    $"{total_promptCountActivity} Activities\n" +
+                    $"Mean Activity Input Tokens: {(double)total_input_tokenCountActivity / total_promptCountActivity}\n" +
+                    $"Mean Activity Output Tokens: {(double)total_output_tokenCountActivity / total_promptCountActivity}\n" +
+                    $"Mean Activity Inference Time: {(double)total_inferenceTimeActivity / total_promptCountActivity}\n" +
+                    $"\n" +
+                    $"Total Input Tokens = {input_tokenCountElement + total_input_tokenCountActivity}\n" +
+                    $"Total Ouput Tokens = {output_tokenCountElement + total_output_tokenCountActivity}\n" +
+                    $"Total Cost = {(input_tokenCountElement + total_input_tokenCountActivity) / 1000000 * 0.10 + (output_tokenCountElement + total_output_tokenCountActivity) / 1000000 * 0.5}\n" +
+                    $"Full Time ({parallelCapacity} running parallel) = {fullTimer.Elapsed.ToString()}";
             }
             else
             {
-                MessageBox.Show("No elements were processed. Please check the graph and ensure that it contains valid elements for reasoning.");
+                messageString = "No elements were processed. Please check the graph and ensure that it contains valid elements for reasoning.";
             }
+
+            MessageBox.Show(messageString);
         }
 
         private void comboBoxAIModel_SelectedIndexChanged(object sender, EventArgs e)
@@ -321,11 +380,13 @@ namespace IFCtoRDF
             {
                 labelAPIKey.Visible = true;
                 textBoxLLMAPIKey.Visible = true;
+                buttonCostEstimator.Visible = true;
             }
             else
             {
                 labelAPIKey.Visible = false;
                 textBoxLLMAPIKey.Visible = false;
+                buttonCostEstimator.Visible = false;
             }
         }
 
@@ -333,6 +394,73 @@ namespace IFCtoRDF
         {
             this.labelTranlateKey.Visible = checkBoxTranslate.Checked;
             this.textBoxTranslateAPIKey.Visible = checkBoxTranslate.Checked;
+        }
+
+        private void buttonCostEstimator_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog ofd = new OpenFileDialog
+            {
+                Title = "Select All Build, Construction, and Carbon Data Files",
+                Filter = "Turtle File (*.ttl)|*.ttl",
+                Multiselect = true
+            };
+            if (ofd.ShowDialog() != DialogResult.OK)
+            {
+                return;
+            }
+            BIMGraph graph = new BIMGraph();
+            foreach (string file in ofd.FileNames)
+            {
+                graph.AppendDataFile(file);
+            }
+
+            var buildingElems = graph.TripleSearch(null, new List<string>() { "a", "rdf:type" }, new List<string>() { "bot:Element" }).Select(t => t.Item1).ToList();
+            int elementCount = buildingElems.Count;
+
+            double inputTokensPerElement = 750;
+            double OutputTokensPerElement = 900;
+            double inferenceTimePerElement = 6;
+            double estimateTasksPerElement = 8;
+            double inputTokensPerTask = 600;
+            double outputTokensPerTask = 300;
+            double inferenceTimePerTask = 3;
+
+            double inputTokensPerElementTotal = inputTokensPerElement + (estimateTasksPerElement * inputTokensPerTask);
+            double outputTokensPerElementTotal = OutputTokensPerElement + (estimateTasksPerElement * outputTokensPerTask);
+
+            double inputCostPerElement = (inputTokensPerElementTotal / 1000000) * 0.1;
+            double outputCostPerElement = (outputTokensPerElementTotal / 1000000) * 0.5;
+
+            double totalCostPerElement = inputCostPerElement + outputCostPerElement;
+            double totalCost = totalCostPerElement * elementCount;
+
+            double totalInputTokens = inputTokensPerElementTotal * elementCount;
+            double totalOutputTokens = outputTokensPerElementTotal * elementCount;
+
+            double timePerElement = inferenceTimePerElement + estimateTasksPerElement * inferenceTimePerTask; // seconds
+            double totalTime = timePerElement * elementCount;
+            TimeSpan runtime = TimeSpan.FromSeconds(totalTime/ DEFAULT_PARALLEL_CAPACITY);
+
+            string message =
+                "Estimated Cost and Runtime:\n\n" +
+                $"Elements to process: {elementCount:N0}\n" +
+                $"Estimated tasks per element: {estimateTasksPerElement:N0}\n\n" +
+                "--- Tokens ---\n" +
+                $"Input tokens per element: {inputTokensPerElementTotal:N0}\n" +
+                $"Output tokens per element: {outputTokensPerElementTotal:N0}\n" +
+                $"Total input tokens: {totalInputTokens:N0}\n" +
+                $"Total output tokens: {totalOutputTokens:N0}\n\n" +
+                "--- Cost (USD) ---\n" +
+                $"Input cost per element: ${inputCostPerElement:F6}\n" +
+                $"Output cost per element: ${outputCostPerElement:F6}\n" +
+                $"Total cost per element: ${totalCostPerElement:F6}\n" +
+                $"Total estimated cost: ${totalCost:F4}\n\n" +
+                "--- Runtime ---\n" +
+                $"Time per element: {timePerElement} s\n" +
+                $"Total estimated time: {runtime.Hours}h {runtime.Minutes}m {runtime.Seconds}s " +
+                $"({totalTime:N0} seconds)";
+
+            MessageBox.Show(message, "Processing Estimate", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }
