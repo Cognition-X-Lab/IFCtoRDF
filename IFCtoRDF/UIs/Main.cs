@@ -439,26 +439,32 @@ namespace IFCtoRDF
 
             double timePerElement = inferenceTimePerElement + estimateTasksPerElement * inferenceTimePerTask; // seconds
             double totalTime = timePerElement * elementCount;
-            TimeSpan runtime = TimeSpan.FromSeconds(totalTime/ DEFAULT_PARALLEL_CAPACITY);
+            double totalTimeParallel = totalTime / DEFAULT_PARALLEL_CAPACITY;
+            TimeSpan runtime = TimeSpan.FromSeconds(totalTime);
+            TimeSpan runtimeParallel = TimeSpan.FromSeconds(totalTimeParallel);
 
             string message =
-                "Estimated Cost and Runtime:\n\n" +
+                "Estimated Cost and Runtime:\n" +
+                "\n" +
                 $"Elements to process: {elementCount:N0}\n" +
-                $"Estimated tasks per element: {estimateTasksPerElement:N0}\n\n" +
+                $"Estimated tasks per element: {estimateTasksPerElement:N0}\n" +
+                $"\n" +
                 "--- Tokens ---\n" +
                 $"Input tokens per element: {inputTokensPerElementTotal:N0}\n" +
                 $"Output tokens per element: {outputTokensPerElementTotal:N0}\n" +
                 $"Total input tokens: {totalInputTokens:N0}\n" +
-                $"Total output tokens: {totalOutputTokens:N0}\n\n" +
+                $"Total output tokens: {totalOutputTokens:N0}\n" +
+                $"\n" +
                 "--- Cost (USD) ---\n" +
                 $"Input cost per element: ${inputCostPerElement:F6}\n" +
                 $"Output cost per element: ${outputCostPerElement:F6}\n" +
                 $"Total cost per element: ${totalCostPerElement:F6}\n" +
-                $"Total estimated cost: ${totalCost:F4}\n\n" +
+                $"Total estimated cost: ${totalCost:F4}\n" +
+                $"\n" +
                 "--- Runtime ---\n" +
                 $"Time per element: {timePerElement} s\n" +
-                $"Total estimated time: {runtime.Hours}h {runtime.Minutes}m {runtime.Seconds}s " +
-                $"({totalTime:N0} seconds)";
+                $"Total estimated time: {runtime.Hours}h {runtime.Minutes}m {runtime.Seconds}s ({totalTime:N0} seconds)\n" +
+                $"Total estimated time (parallel): {runtimeParallel.Hours}h {runtimeParallel.Minutes}m {runtimeParallel.Seconds}s ({totalTimeParallel:N0} seconds)";
 
             MessageBox.Show(message, "Processing Estimate", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }

@@ -119,6 +119,6 @@
   </resheader>
   <data name="label5.Text" xml:space="preserve">
     <value>*Note that PortableLLM is still required for semantic similarity calculations. Please ensure the local LLM server is active on "http://127.0.0.1:8000/" before starting this process.
-You may go to "http://127.0.0.1:8000/docs" to test PortableLLM out beforehand. If using PortableLLM, the first request will load the default model on to your device which might take a minute.</value>
+You may go to "http://127.0.0.1:8000/docs" to test PortableLLM out beforehand. If fully using PortableLLM, the first request will load the default model on to your device which might take a minute.</value>
   </data>
 </root>

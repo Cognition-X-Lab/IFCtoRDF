@@ -40,6 +40,8 @@
             this.label1 = new System.Windows.Forms.Label();
             this.checkBoxDetailedBOT = new System.Windows.Forms.CheckBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.label5 = new System.Windows.Forms.Label();
+            this.buttonCostEstimator = new System.Windows.Forms.Button();
             this.textBoxModel = new System.Windows.Forms.TextBox();
             this.labelModel = new System.Windows.Forms.Label();
             this.labelAPIKey = new System.Windows.Forms.Label();
@@ -52,8 +54,6 @@
             this.buttonTTLReasoning = new System.Windows.Forms.Button();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.progressBar = new System.Windows.Forms.ProgressBar();
-            this.buttonCostEstimator = new System.Windows.Forms.Button();
-            this.label5 = new System.Windows.Forms.Label();
             this.groupBoxSetting.SuspendLayout();
             this.groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownConfidence)).BeginInit();
@@ -194,6 +194,28 @@
             this.groupBox1.TabIndex = 2;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "LLM Settings";
+            // 
+            // label5
+            // 
+            this.label5.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.label5.Location = new System.Drawing.Point(9, 95);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(374, 94);
+            this.label5.TabIndex = 37;
+            this.label5.Text = resources.GetString("label5.Text");
+            // 
+            // buttonCostEstimator
+            // 
+            this.buttonCostEstimator.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.buttonCostEstimator.Location = new System.Drawing.Point(292, 212);
+            this.buttonCostEstimator.Name = "buttonCostEstimator";
+            this.buttonCostEstimator.Size = new System.Drawing.Size(93, 23);
+            this.buttonCostEstimator.TabIndex = 36;
+            this.buttonCostEstimator.Text = "Cost Estimate";
+            this.buttonCostEstimator.UseVisualStyleBackColor = true;
+            this.buttonCostEstimator.Click += new System.EventHandler(this.buttonCostEstimator_Click);
             // 
             // textBoxModel
             // 
@@ -336,28 +358,6 @@
             this.progressBar.Name = "progressBar";
             this.progressBar.Size = new System.Drawing.Size(394, 16);
             this.progressBar.TabIndex = 5;
-            // 
-            // buttonCostEstimator
-            // 
-            this.buttonCostEstimator.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonCostEstimator.Location = new System.Drawing.Point(292, 212);
-            this.buttonCostEstimator.Name = "buttonCostEstimator";
-            this.buttonCostEstimator.Size = new System.Drawing.Size(93, 23);
-            this.buttonCostEstimator.TabIndex = 36;
-            this.buttonCostEstimator.Text = "Cost Estimate";
-            this.buttonCostEstimator.UseVisualStyleBackColor = true;
-            this.buttonCostEstimator.Click += new System.EventHandler(this.buttonCostEstimator_Click);
-            // 
-            // label5
-            // 
-            this.label5.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.label5.Location = new System.Drawing.Point(9, 95);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(374, 94);
-            this.label5.TabIndex = 37;
-            this.label5.Text = resources.GetString("label5.Text");
             // 
             // Main
             // 
