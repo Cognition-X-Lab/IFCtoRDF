@@ -385,6 +385,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="DistributionREADME.txt" />
   </ItemGroup>
   <ItemGroup>
     <Analyzer Include="..\packages\Lucene.Net.4.8.0-beta00017\analyzers\dotnet\cs\Lucene.Net.CodeAnalysis.CSharp.dll" />
@@ -418,6 +419,7 @@
     <Copy SourceFiles="@(AppDependency)" DestinationFolder="$(AppLibraryDir)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(AppDistributionDir)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(TargetPath).config" DestinationFolder="$(AppDistributionDir)" Condition="Exists('$(TargetPath).config')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\DistributionREADME.txt" DestinationFiles="$(AppDistributionDir)README.txt" SkipUnchangedFiles="true" />
     <ZipDirectory SourceDirectory="$(AppDistributionDir)" DestinationFile="$(AppZipFile)" Overwrite="true" />
     <RemoveDir Directories="$(AppDistributionDir)" />
   </Target>
