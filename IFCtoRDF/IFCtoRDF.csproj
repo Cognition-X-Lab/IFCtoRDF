@@ -399,4 +399,36 @@
     <Error Condition="!Exists('..\packages\Xbim.Geometry.Engine.Interop.5.1.820\build\net472\Xbim.Geometry.Engine.Interop.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Xbim.Geometry.Engine.Interop.5.1.820\build\net472\Xbim.Geometry.Engine.Interop.targets'))" />
   </Target>
   <Import Project="..\packages\Xbim.Geometry.Engine.Interop.5.1.820\build\net472\Xbim.Geometry.Engine.Interop.targets" Condition="Exists('..\packages\Xbim.Geometry.Engine.Interop.5.1.820\build\net472\Xbim.Geometry.Engine.Interop.targets')" />
+
+  <Target Name="CreateAppDistributionZip" AfterTargets="Build">
+    <PropertyGroup>
+      <AppDistributionDir>$(MSBuildProjectDirectory)\..\IFCtoRDF_app\</AppDistributionDir>
+      <AppLibraryDir>$(AppDistributionDir)IFCtoRDF_lib\</AppLibraryDir>
+      <AppZipFile>$(MSBuildProjectDirectory)\..\IFCtoRDF_app.zip</AppZipFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <OldRootDll Include="$(AppDistributionDir)*.dll" />
+      <AppDependency Include="$(TargetDir)*.dll" />
+    </ItemGroup>
+
+    <Delete Files="@(OldRootDll)" />
+    <RemoveDir Directories="$(AppLibraryDir)" />
+    <MakeDir Directories="$(AppLibraryDir)" />
+    <Copy SourceFiles="@(AppDependency)" DestinationFolder="$(AppLibraryDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(AppDistributionDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(TargetPath).config" DestinationFolder="$(AppDistributionDir)" Condition="Exists('$(TargetPath).config')" SkipUnchangedFiles="true" />
+    <ZipDirectory SourceDirectory="$(AppDistributionDir)" DestinationFile="$(AppZipFile)" Overwrite="true" />
+    <RemoveDir Directories="$(AppDistributionDir)" />
+  </Target>
+
+  <Target Name="CleanAppDistributionFiles" BeforeTargets="Clean">
+    <PropertyGroup>
+      <AppDistributionDir>$(MSBuildProjectDirectory)\..\IFCtoRDF_app\</AppDistributionDir>
+      <AppZipFile>$(MSBuildProjectDirectory)\..\IFCtoRDF_app.zip</AppZipFile>
+    </PropertyGroup>
+
+    <RemoveDir Directories="$(AppDistributionDir)" />
+    <Delete Files="$(AppZipFile)" />
+  </Target>
 </Project>
