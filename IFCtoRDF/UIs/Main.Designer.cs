@@ -67,9 +67,9 @@
             // 
             this.buttonConvertIFCtoRDF.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonConvertIFCtoRDF.Location = new System.Drawing.Point(3, 150);
+            this.buttonConvertIFCtoRDF.Location = new System.Drawing.Point(3, 184);
             this.buttonConvertIFCtoRDF.Name = "buttonConvertIFCtoRDF";
-            this.buttonConvertIFCtoRDF.Size = new System.Drawing.Size(391, 23);
+            this.buttonConvertIFCtoRDF.Size = new System.Drawing.Size(515, 23);
             this.buttonConvertIFCtoRDF.TabIndex = 0;
             this.buttonConvertIFCtoRDF.Text = "Convert IFC file to RDF";
             this.buttonConvertIFCtoRDF.UseVisualStyleBackColor = true;
@@ -90,7 +90,7 @@
             this.groupBoxSetting.Controls.Add(this.checkBoxDetailedBOT);
             this.groupBoxSetting.Location = new System.Drawing.Point(3, 3);
             this.groupBoxSetting.Name = "groupBoxSetting";
-            this.groupBoxSetting.Size = new System.Drawing.Size(391, 141);
+            this.groupBoxSetting.Size = new System.Drawing.Size(515, 175);
             this.groupBoxSetting.TabIndex = 1;
             this.groupBoxSetting.TabStop = false;
             this.groupBoxSetting.Text = "Converter Settings";
@@ -111,7 +111,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.textBoxTranslateAPIKey.Location = new System.Drawing.Point(224, 71);
             this.textBoxTranslateAPIKey.Name = "textBoxTranslateAPIKey";
-            this.textBoxTranslateAPIKey.Size = new System.Drawing.Size(159, 20);
+            this.textBoxTranslateAPIKey.Size = new System.Drawing.Size(283, 20);
             this.textBoxTranslateAPIKey.TabIndex = 25;
             this.textBoxTranslateAPIKey.Visible = false;
             // 
@@ -132,7 +132,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.textBoxNS.Location = new System.Drawing.Point(79, 19);
             this.textBoxNS.Name = "textBoxNS";
-            this.textBoxNS.Size = new System.Drawing.Size(306, 20);
+            this.textBoxNS.Size = new System.Drawing.Size(430, 20);
             this.textBoxNS.TabIndex = 23;
             // 
             // textBoxNSShort
@@ -141,7 +141,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.textBoxNSShort.Location = new System.Drawing.Point(107, 45);
             this.textBoxNSShort.Name = "textBoxNSShort";
-            this.textBoxNSShort.Size = new System.Drawing.Size(278, 20);
+            this.textBoxNSShort.Size = new System.Drawing.Size(402, 20);
             this.textBoxNSShort.TabIndex = 22;
             // 
             // label2
@@ -190,7 +190,7 @@
             this.groupBox1.Controls.Add(this.numericUpDownConfidence);
             this.groupBox1.Location = new System.Drawing.Point(3, 3);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(391, 241);
+            this.groupBox1.Size = new System.Drawing.Size(515, 296);
             this.groupBox1.TabIndex = 2;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "LLM Settings";
@@ -202,14 +202,14 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.label5.Location = new System.Drawing.Point(9, 95);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(374, 94);
+            this.label5.Size = new System.Drawing.Size(498, 149);
             this.label5.TabIndex = 37;
             this.label5.Text = resources.GetString("label5.Text");
             // 
             // buttonCostEstimator
             // 
             this.buttonCostEstimator.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonCostEstimator.Location = new System.Drawing.Point(292, 212);
+            this.buttonCostEstimator.Location = new System.Drawing.Point(416, 267);
             this.buttonCostEstimator.Name = "buttonCostEstimator";
             this.buttonCostEstimator.Size = new System.Drawing.Size(93, 23);
             this.buttonCostEstimator.TabIndex = 36;
@@ -223,7 +223,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.textBoxModel.Location = new System.Drawing.Point(71, 46);
             this.textBoxModel.Name = "textBoxModel";
-            this.textBoxModel.Size = new System.Drawing.Size(314, 20);
+            this.textBoxModel.Size = new System.Drawing.Size(438, 20);
             this.textBoxModel.TabIndex = 35;
             // 
             // labelModel
@@ -250,7 +250,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.textBoxLLMAPIKey.Location = new System.Drawing.Point(71, 72);
             this.textBoxLLMAPIKey.Name = "textBoxLLMAPIKey";
-            this.textBoxLLMAPIKey.Size = new System.Drawing.Size(314, 20);
+            this.textBoxLLMAPIKey.Size = new System.Drawing.Size(438, 20);
             this.textBoxLLMAPIKey.TabIndex = 32;
             // 
             // checkBoxSkip
@@ -259,7 +259,7 @@
             this.checkBoxSkip.AutoSize = true;
             this.checkBoxSkip.Checked = true;
             this.checkBoxSkip.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBoxSkip.Location = new System.Drawing.Point(6, 218);
+            this.checkBoxSkip.Location = new System.Drawing.Point(6, 273);
             this.checkBoxSkip.Name = "checkBoxSkip";
             this.checkBoxSkip.Size = new System.Drawing.Size(146, 17);
             this.checkBoxSkip.TabIndex = 31;
@@ -282,7 +282,7 @@
             this.comboBoxAIModel.FormattingEnabled = true;
             this.comboBoxAIModel.Location = new System.Drawing.Point(71, 19);
             this.comboBoxAIModel.Name = "comboBoxAIModel";
-            this.comboBoxAIModel.Size = new System.Drawing.Size(314, 21);
+            this.comboBoxAIModel.Size = new System.Drawing.Size(438, 21);
             this.comboBoxAIModel.TabIndex = 27;
             this.comboBoxAIModel.SelectedIndexChanged += new System.EventHandler(this.comboBoxAIModel_SelectedIndexChanged);
             // 
@@ -290,7 +290,7 @@
             // 
             this.label4.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(6, 194);
+            this.label4.Location = new System.Drawing.Point(6, 249);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(144, 13);
             this.label4.TabIndex = 29;
@@ -305,7 +305,7 @@
             0,
             0,
             131072});
-            this.numericUpDownConfidence.Location = new System.Drawing.Point(156, 192);
+            this.numericUpDownConfidence.Location = new System.Drawing.Point(156, 247);
             this.numericUpDownConfidence.Maximum = new decimal(new int[] {
             1,
             0,
@@ -320,9 +320,9 @@
             // 
             this.buttonTTLReasoning.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonTTLReasoning.Location = new System.Drawing.Point(3, 250);
+            this.buttonTTLReasoning.Location = new System.Drawing.Point(3, 305);
             this.buttonTTLReasoning.Name = "buttonTTLReasoning";
-            this.buttonTTLReasoning.Size = new System.Drawing.Size(391, 23);
+            this.buttonTTLReasoning.Size = new System.Drawing.Size(515, 23);
             this.buttonTTLReasoning.TabIndex = 3;
             this.buttonTTLReasoning.Text = "Perform Merge and Reasoning on TTL Files";
             this.buttonTTLReasoning.UseVisualStyleBackColor = true;
@@ -346,28 +346,26 @@
             // 
             this.splitContainer1.Panel2.Controls.Add(this.groupBox1);
             this.splitContainer1.Panel2.Controls.Add(this.buttonTTLReasoning);
-            this.splitContainer1.Size = new System.Drawing.Size(398, 456);
-            this.splitContainer1.SplitterDistance = 176;
+            this.splitContainer1.Size = new System.Drawing.Size(522, 545);
+            this.splitContainer1.SplitterDistance = 210;
             this.splitContainer1.TabIndex = 4;
             // 
             // progressBar
             // 
             this.progressBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.progressBar.Location = new System.Drawing.Point(0, 462);
+            this.progressBar.Location = new System.Drawing.Point(0, 551);
             this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(394, 16);
+            this.progressBar.Size = new System.Drawing.Size(518, 16);
             this.progressBar.TabIndex = 5;
             // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(398, 479);
+            this.ClientSize = new System.Drawing.Size(522, 568);
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.splitContainer1);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
-            this.MaximizeBox = false;
             this.Name = "Main";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "IFC to RDF";
