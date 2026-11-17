@@ -130,7 +130,7 @@ namespace IFCtoRDF
             return combinedModel;
         }
 
-        private async void TranslateModel(BIMModel model)
+        private void TranslateModel(BIMModel model)
         {
             Translator.AzureTranslatorApiKey = textBoxTranslateAPIKey.Text;
             Translator.CreateTranslator();
@@ -139,8 +139,8 @@ namespace IFCtoRDF
             Dictionary<string, string> newPropsModel = new Dictionary<string, string>();
             foreach (var prop in model.Properties)
             {
-                string propNew = await Translator.TranslateToEnglishAsync(prop.Key);
-                string valueNew = prop.Value == null ? null : await Translator.TranslateToEnglishAsync(prop.Value.ToString());
+                string propNew = Translator.TranslateToEnglishAsync(prop.Key).Result;
+                string valueNew = prop.Value == null ? null : Translator.TranslateToEnglishAsync(prop.Value.ToString()).Result;
                 newPropsModel[propNew] = valueNew;
             }
             model.Properties = newPropsModel.ToDictionary(entry => entry.Key, entry => (object)entry.Value);
@@ -149,8 +149,8 @@ namespace IFCtoRDF
                 Dictionary<string, string> newPropsObj = new Dictionary<string, string>();
                 foreach (var prop in obj.Value.Properties)
                 {
-                    string propNew = await Translator.TranslateToEnglishAsync(prop.Key);
-                    string valueNew = prop.Value == null ? null : await Translator.TranslateToEnglishAsync(prop.Value.ToString());
+                    string propNew = Translator.TranslateToEnglishAsync(prop.Key).Result;
+                    string valueNew = prop.Value == null ? null : Translator.TranslateToEnglishAsync(prop.Value.ToString()).Result;
                     newPropsObj[propNew] = valueNew;
                 }
                 obj.Value.Properties = newPropsObj.ToDictionary(entry => entry.Key, entry => (object)entry.Value);
@@ -159,8 +159,8 @@ namespace IFCtoRDF
                     Dictionary<string, string> newPropsComp = new Dictionary<string, string>();
                     foreach (var prop in comp.Value.Properties)
                     {
-                        string propNew = await Translator.TranslateToEnglishAsync(prop.Key);
-                        string valueNew = prop.Value == null ? null : await Translator.TranslateToEnglishAsync(prop.Value.ToString());
+                        string propNew = Translator.TranslateToEnglishAsync(prop.Key).Result;
+                        string valueNew = prop.Value == null ? null : Translator.TranslateToEnglishAsync(prop.Value.ToString()).Result;
                         newPropsComp[propNew] = valueNew;
                     }
                     comp.Value.Properties = newPropsComp.ToDictionary(entry => entry.Key, entry => (object)entry.Value);

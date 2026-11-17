@@ -47,8 +47,6 @@ namespace IFCtoRDF.Utils
                     throw new Exception(ex.Message);
                 }
             }
-
-            _translator = null;
         }
 
         //private static Dictionary<string, string> LoadCredentials()
