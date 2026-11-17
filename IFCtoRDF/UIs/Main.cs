@@ -170,6 +170,9 @@ namespace IFCtoRDF
 
         private async void buttonTTLReasoning_Click(object sender, System.EventArgs e)
         {
+            // Run a check to make sure PortableLLM is running:
+
+
             try
             {
                 OpenFileDialog ofd = new OpenFileDialog

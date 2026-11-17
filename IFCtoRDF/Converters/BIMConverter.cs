@@ -19,7 +19,7 @@ namespace IFCtoRDF
 
             graph.AddNamespace(modelNamespaceShort, modelNamespace, BIMGraph.Location.Data);
 
-            string propNamespace = "http://bimkit.ca/props#";
+            string propNamespace = "http://www.example.org/props/#";
             string propNamespaceShort = "prop";
             graph.AddNamespace(propNamespaceShort, propNamespace, BIMGraph.Location.Data);
 
