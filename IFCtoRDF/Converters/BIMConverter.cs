@@ -11,6 +11,8 @@ namespace IFCtoRDF
 {
     public static class BIMConverter
     {
+        public static List<string> removeTypeList = new List<string>() { "IfcOpeningElement" };
+
         public static BIMGraph ConvertBIMtoRDF(BIMModel model, string modelNamespace, string modelNamespaceShort, ProgressBar progressBar, bool detailedBOT = false)
         {
             progressBar.Value = 0;
@@ -45,9 +47,13 @@ namespace IFCtoRDF
             for (int i = 0; i < globalObjects.Count; i++)
             {
                 BIMObject obj1 = globalObjects[i];
-
-                // The Types
                 string type = obj1.GetObjectType();
+                if (removeTypeList.Contains(type))
+                {
+                    progressBar.Value = i;
+                    continue;
+                }
+
                 graph.AppendTripple(modelNamespaceShort + ":" + obj1.ID, "rdf:type", ifcNamespaceShort + ":" + type);
                 switch (type)
                 {

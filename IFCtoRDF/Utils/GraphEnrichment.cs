@@ -487,7 +487,7 @@ namespace IFCtoRDF
                 }
             }
         }
-
+        
         public static PromptResult ElementDetailGenerator(BIMGraph graph, string elem)
         {
             PromptResult promptResult = new PromptResult()
@@ -501,7 +501,7 @@ namespace IFCtoRDF
 
             List<Tuple<string, string, string>> deleteTriples = new List<Tuple<string, string, string>>();
             List<Tuple<string, string, string>> addTriples = new List<Tuple<string, string, string>>();
-            var elemInfos = graph.TripleSearch(new List<string>() { elem }, null, null).Select(t => t.Item2 + " " + t.Item3).ToList(); //new List<string>() { "prop:description" }
+            var elemInfos = graph.TripleSearch(new List<string>() { elem }, null, null).Select(t => t.Item2 + " " + t.Item3).ToList();
             var request = new
             {
                 prompt = $"Element {elem}:\n{string.Join("\n", elemInfos)}",
@@ -509,40 +509,39 @@ namespace IFCtoRDF
                         "Role: construction planner/site engineer. Input: RDF/IFC data for one building element.\n" +
                         "Output:\n" +
                         "1. description: what the element physically is (≤15 words).\n" +
-                        "2. material: most likely primary material, inferred from IFC type, name, dimensions, context (≤5 words).\n" +
+                        "2. material: breakdown of the element's constituent materials BY VOLUME, inferred from IFC type, name, " +
+                        "dimensions, layers and context. Each entry: materialDescription (≤10 words, include grade/spec/mix if inferable, " +
+                        "e.g. \"Concrete GEN 3 with 25% GGBS cement\") and materialPercentage (a NUMBER, not a string, % of total element volume). " +
+                        "Percentages must sum to 100. List the main material first; omit components below 1%.\n" +
                         "3. tasks: ordered on-site physical activities to build/install it " +
                         "(e.g. setting out, formwork/framing, positioning, fixing, connections, sealing/finishing, inspection). " +
                         "Include only steps relevant to this element.\n" +
                         "Ignore metadata (GUIDs, ifc:/bot: tags, coordinates, IDs); never create tasks that restate data fields.\n" +
                         "Return ONLY compact JSON, no markdown:\n" +
-                        "{\"description\":\"\",\"material\":\"\",\"tasks\":[{\"taskName\":\"<≤5 words>\",\"taskDescription\":\"<1 sentence>\"}]}",
+                        "{\"description\":\"\"," +
+                        "\"material\":[{\"materialDescription\":\"\",\"materialPercentage\":0}]," +
+                        "\"tasks\":[{\"taskName\":\"<≤5 words>\",\"taskDescription\":\"<1 sentence>\"}]}",
                 model = AINumber.ToString()
             };
 
-            // remove any existing description triples for this element
+            // Remove existing description triples (and the legacy single-material triple)
             var existingDescTrips = graph.TripleSearch(new List<string>() { elem }, new List<string>() { "prop:guessedDescription", "prop:guessedMaterial" }, null);
             foreach (var descTrip in existingDescTrips)
-            {
-                //graph.RemoveMatchingTriple(descTrip.Item1, descTrip.Item2, descTrip.Item3);
                 deleteTriples.Add(descTrip);
-            }
 
-            // Remove the guessed task and all its related triples from the graph
-            var guessedTasks = graph.TripleSearch(new List<string>() { elem }, new List<string>() { "prop:guessedTask" }, null).Select(t => t.Item3).ToList();
-            foreach (var gTask in guessedTasks)
+            // Remove guessed tasks AND guessed material components, plus all their related triples
+            var guessedNodes = graph.TripleSearch(new List<string>() { elem },
+                                                  new List<string>() { "prop:guessedTask", "prop:guessedMaterialComponent" }, null);
+            foreach (var link in guessedNodes)
             {
-                //graph.RemoveMatchingTriple(elem, "prop:guessedTask", gTask);
-                deleteTriples.Add(Tuple.Create(elem, "prop:guessedTask", gTask));
-                foreach (var t in graph.TripleSearch(new List<string>() { gTask }, null, null))
-                {
-                    //graph.RemoveMatchingTriple(t.Item1, t.Item2, t.Item3);
+                deleteTriples.Add(link);
+                foreach (var t in graph.TripleSearch(new List<string>() { link.Item3 }, null, null))
                     deleteTriples.Add(t);
-                }
             }
 
             Dictionary<string, string> plannedTasks = new Dictionary<string, string>();
+            List<Tuple<string, double>> materials = new List<Tuple<string, double>>();
             string description = null;
-            string material = null;
             try
             {
                 string result = SendPostRequest(MODEL, JsonSerializer.Serialize(request), generateURL);
@@ -552,8 +551,6 @@ namespace IFCtoRDF
                     JsonElement root = doc.RootElement;
                     string response = root.GetProperty("response").GetString();
 
-                    // The LLM should return a JSON object. Extract it defensively in case
-                    // the model wraps it in markdown fences or stray prose.
                     int start = response.IndexOf('{');
                     int end = response.LastIndexOf('}');
                     if (start < 0 || end <= start)
@@ -568,12 +565,41 @@ namespace IFCtoRDF
                             throw new FormatException("Expected a JSON object from the LLM.");
 
                         // --- Description ---
-                        if (resultRoot.TryGetProperty("description", out JsonElement descElem))
+                        if (resultRoot.TryGetProperty("description", out JsonElement descElem) && descElem.ValueKind == JsonValueKind.String)
                             description = descElem.GetString();
 
-                        // --- Material ---
-                        if (resultRoot.TryGetProperty("material", out JsonElement matElem))
-                            material = matElem.GetString();
+                        // --- Material breakdown ---
+                        if (resultRoot.TryGetProperty("material", out JsonElement matRoot))
+                        {
+                            if (matRoot.ValueKind == JsonValueKind.Array)
+                            {
+                                foreach (JsonElement matElem in matRoot.EnumerateArray())
+                                {
+                                    if (matElem.ValueKind != JsonValueKind.Object) continue;
+
+                                    string matDesc = null;
+                                    if (matElem.TryGetProperty("materialDescription", out JsonElement mdProp) && mdProp.ValueKind == JsonValueKind.String)
+                                        matDesc = mdProp.GetString();
+
+                                    if (string.IsNullOrWhiteSpace(matDesc)) continue;
+
+                                    double pct = 0;
+                                    if (matElem.TryGetProperty("materialPercentage", out JsonElement mpProp))
+                                        pct = ParsePercentage(mpProp);
+
+                                    materials.Add(Tuple.Create(matDesc.Trim(), pct));
+                                }
+                            }
+                            else if (matRoot.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(matRoot.GetString()))
+                            {
+                                // Fallback: model returned old-style single material string
+                                materials.Add(Tuple.Create(matRoot.GetString().Trim(), 100.0));
+                            }
+
+                            double total = materials.Sum(m => m.Item2);
+                            if (materials.Count > 0 && Math.Abs(total - 100.0) > 1.0)
+                                Debug.Print($"Warning: material percentages for {elem} sum to {total.ToString(CultureInfo.InvariantCulture)}, not 100.");
+                        }
 
                         // --- Tasks ---
                         if (!resultRoot.TryGetProperty("tasks", out JsonElement tasksRoot))
@@ -596,7 +622,6 @@ namespace IFCtoRDF
                             if (string.IsNullOrWhiteSpace(name))
                                 continue;
 
-                            // Handle duplicate task names gracefully so nothing is silently lost.
                             string key = name;
                             int dupCount = 1;
                             while (plannedTasks.ContainsKey(key))
@@ -628,15 +653,20 @@ namespace IFCtoRDF
                 newTriples.Add(Tuple.Create(taskID, "prop:description", task.Value));
                 newTriples.Add(Tuple.Create(elem, "prop:guessedTask", taskID));
             }
-            newTriples.Add(Tuple.Create(elem, "prop:guessedDescription", description));
-            newTriples.Add(Tuple.Create(elem, "prop:guessedMaterial", material));
 
-            //foreach (var elementDescription in newTriples)
-            //{
-            //    graph.AppendTripple(elementDescription.Item1, elementDescription.Item2, elementDescription.Item3);
-            //}
+            foreach (var mat in materials)
+            {
+                var matID = "prop:MaterialComponent_" + Guid.NewGuid().ToString();
+                newTriples.Add(Tuple.Create(matID, "a", "prop:GuessedMaterialComponent"));
+                newTriples.Add(Tuple.Create(matID, "prop:description", mat.Item1));
+                newTriples.Add(Tuple.Create(matID, "prop:volumePercentage", mat.Item2.ToString("0.##", CultureInfo.InvariantCulture)));
+                newTriples.Add(Tuple.Create(elem, "prop:guessedMaterialComponent", matID));
+            }
+
+            if (!string.IsNullOrWhiteSpace(description))
+                newTriples.Add(Tuple.Create(elem, "prop:guessedDescription", description));
+
             addTriples.AddRange(newTriples);
-
 
             foreach (var trip in deleteTriples) { graph.RemoveMatchingTriple(trip.Item1, trip.Item2, trip.Item3); }
             foreach (var trip in addTriples) { graph.AppendTripple(trip.Item1, trip.Item2, trip.Item3); }
@@ -644,56 +674,73 @@ namespace IFCtoRDF
             return promptResult;
         }
 
-        public static void FindClosestMatchingMaterial(BIMGraph graph, string elem, Dictionary<string, string> materialDef, double threshold, string materialRel)
+        private static double ParsePercentage(JsonElement prop)
+        {
+            if (prop.ValueKind == JsonValueKind.Number && prop.TryGetDouble(out double d))
+                return d;
+
+            if (prop.ValueKind == JsonValueKind.String)
+            {
+                string s = prop.GetString()?.Replace("%", "").Trim();
+                if (double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed))
+                    return parsed;
+            }
+            return 0;
+        }
+
+        public static void FindClosestMatchingMaterial(BIMGraph graph, string elem, Dictionary<string, string> materialDef, double threshold)
         {
             List<Tuple<string, string, string>> addTrips = new List<Tuple<string, string, string>>();
 
-            var materialAssosiations = graph.TripleSearch(new List<string>() { elem }, new List<string>() { materialRel }, null).Select(t => t.Item3).ToList();
-            if (materialAssosiations.Count == 0)
+            var elemMats = graph.TripleSearch(new List<string>() { elem }, new List<string>() { "prop:guessedMaterialComponent" }, null).Select(t => t.Item3).ToList();
+            foreach (var elemMat in elemMats)
             {
-                Debug.Print("Warning: No material associations found for element " + elem);
-                return;
-            }
-
-            // Find the best match for each material based on the similarty of the material property strings and the ICE:mat rep. string
-            var request = new
-            {
-                sentence = string.Join(";", materialAssosiations).Replace("\"", ""),
-                dictionary = materialDef,
-                model = AINumber.ToString()
-            };
-
-            string result = SendPostRequest("PortableLLM", JsonSerializer.Serialize(request), dictionarySimilarityURL);
-            try
-            {
-                using (JsonDocument doc = JsonDocument.Parse(result))
+                var materialDefs = graph.TripleSearch(new List<string>() { elemMat }, new List<string>() { "prop:description" }, null).Select(t => t.Item3).ToList();
+                if (materialDefs.Count == 0)
                 {
-                    JsonElement root = doc.RootElement;
+                    Debug.Print("Warning: No material definitions found for element " + elemMat);
+                    return;
+                }
 
-                    Dictionary<string, double> resultValues = doc.RootElement.GetProperty("scores").EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetDouble());
-                    if (resultValues.Count == 0)
-                        return;
+                // Find the best match for each material based on the similarty of the material property strings and the ICE:mat rep. string
+                var request = new
+                {
+                    sentence = string.Join(";", materialDefs).Replace("\"", ""),
+                    dictionary = materialDef,
+                    model = AINumber.ToString()
+                };
 
-                    var topResult = resultValues.OrderByDescending(kvp => kvp.Value).First();
-
-                    if (topResult.Value >= threshold)
+                string result = SendPostRequest("PortableLLM", JsonSerializer.Serialize(request), dictionarySimilarityURL);
+                try
+                {
+                    using (JsonDocument doc = JsonDocument.Parse(result))
                     {
-                        // Make sure it is a real material in the graph before adding the triple
-                        if (graph.TripleSearch(new List<string>() { topResult.Key }, null, null).Count > 0)
+                        JsonElement root = doc.RootElement;
+
+                        Dictionary<string, double> resultValues = doc.RootElement.GetProperty("scores").EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetDouble());
+                        if (resultValues.Count == 0)
+                            return;
+
+                        var topResult = resultValues.OrderByDescending(kvp => kvp.Value).First();
+                        if (topResult.Value >= threshold)
                         {
-                            //graph.AppendTripple(elem, "prop:materialICE", topResult.Key);
-                            addTrips.Add(Tuple.Create(elem, "prop:materialICE", topResult.Key));
-                        }
-                        else
-                        {
-                            Debug.Print("Warning: top result " + topResult.Key + " for element " + elem + " is not a valid material in the graph.");
+                            // Make sure it is a real material in the graph before adding the triple
+                            if (graph.TripleSearch(new List<string>() { topResult.Key }, null, null).Count > 0)
+                            {
+                                //graph.AppendTripple(elem, "prop:materialICE", topResult.Key);
+                                addTrips.Add(Tuple.Create(elemMat, "prop:materialICE", topResult.Key));
+                            }
+                            else
+                            {
+                                Debug.Print("Warning: top result " + topResult.Key + " for material " + elemMat + " is not a valid material in the graph.");
+                            }
                         }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                Debug.Print("Error processing element " + elem + ": " + ex.Message);
+                catch (Exception ex)
+                {
+                    Debug.Print("Error processing material " + elemMat + ": " + ex.Message);
+                }
             }
 
             foreach (var trip in addTrips) { graph.AppendTripple(trip.Item1, trip.Item2, trip.Item3); }
@@ -712,7 +759,6 @@ namespace IFCtoRDF
                 return;
             }
 
-            List<Tuple<string, string, string>> newTripleList = new List<Tuple<string, string, string>>();
             foreach (var gTask in guessedTasks)
             {
                 try
@@ -744,9 +790,9 @@ namespace IFCtoRDF
                             if (graph.TripleSearch(new List<string>() { topResult.Key }, null, null).Count > 0)
                             {
                                 string activityID = "act:" + Guid.NewGuid().ToString();
-                                newTripleList.Add(Tuple.Create(activityID, "a", "act:ConstructionActivity"));
-                                newTripleList.Add(Tuple.Create(activityID, "prop:doingTask", topResult.Key));
-                                newTripleList.Add(Tuple.Create(activityID, "prop:forElement", elem));
+                                addTriples.Add(Tuple.Create(activityID, "a", "act:ConstructionActivity"));
+                                addTriples.Add(Tuple.Create(activityID, "prop:doingTask", topResult.Key));
+                                addTriples.Add(Tuple.Create(activityID, "prop:forElement", elem));
 
                                 // Remove the guessed task and all its related triples from the graph
                                 foreach (var t in graph.TripleSearch(new List<string>() { gTask }, null, null))
@@ -774,8 +820,6 @@ namespace IFCtoRDF
             //{
             //    graph.AppendTripple(elementDescription.Item1, elementDescription.Item2, elementDescription.Item3);
             //}
-
-            addTriples.AddRange(newTripleList);
 
             //foreach (var task in constructionTasks)
             //{
@@ -831,14 +875,16 @@ namespace IFCtoRDF
             }
 
             // Deterimine a task duration based on the element and task information, and add it to the activity in the graph
-            var elemInfos = graph.TripleSearch(new List<string>() { elem }, new List<string>() { "prop:Name", "prop:Description", "prop:guessedDescription", "prop:volume", "prop:surfaceArea" }, null).Select(t => t.Item1 + " " + t.Item2 + " " + t.Item3).ToList();
+            var elemInfos = graph.TripleSearch(new List<string>() { elem }, new List<string>() { "prop:Name", "prop:Description", "prop:guessedDescription", "prop:volume", "prop:surfaceArea", "prop:guessedMaterialComponent" }, null).Select(t => t.Item1 + " " + t.Item2 + " " + t.Item3).ToList();
             var taskInfos = graph.TripleSearch(new List<string>() { task }, new List<string>() { "rdfs:label", "prop:Description" }, null).Select(t => t.Item1 + " " + t.Item2 + " " + t.Item3).ToList();
+            var elemMats = graph.TripleSearch(new List<string>() { elem }, new List<string>() { "prop:guessedMaterialComponent" }, null).Select(t => t.Item3).ToList();
+            var matInfos = graph.TripleSearch(elemMats, new List<string>() { "prop:volumePercentage", "prop:Description" }, null).Select(t => t.Item1 + " " + t.Item2 + " " + t.Item3).ToList();
 
             var request = new
             {
-                prompt = $"Element {elem}:\n{string.Join("\n", elemInfos)}\n\nTask {task}:\n{string.Join("\n", taskInfos)}",
+                prompt = $"Element {elem}:\n{string.Join("\n", elemInfos)}\n\nMaterials:\n{string.Join("\n", matInfos)}\n\nTask {task}:\n{string.Join("\n", taskInfos)}",
                 prompt_information =
-                    "Role: construction estimator. Estimate the duration in hours for one average crew to perform the given task on the given element.\n" +
+                    "Role: construction estimator. Estimate the duration in hours for one average crew to perform the given task on the given element and its materials.\n" +
                     "Base it on the element's type, dimensions, quantity and complexity, the task's requirements, and typical productivity rates. " +
                     "Ignore metadata (GUIDs, ifc:/bot: tags, coordinates, IDs).\n" +
                     (includeLogic

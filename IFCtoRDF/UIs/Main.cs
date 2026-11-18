@@ -21,6 +21,8 @@ namespace IFCtoRDF
 
         private int DEFAULT_PARALLEL_CAPACITY = 20;
 
+        private List<string> skipTypes = new List<string>() { "ifc:IfcOpeningElement" };
+
         public Main()
         {
             InitializeComponent();
@@ -278,6 +280,10 @@ namespace IFCtoRDF
             {
                 try
                 {
+                    if (graph.TripleSearch(new List<string>() { elem }, new List<string>() { "a", "rdf:type" }, skipTypes).Count > 0)
+                    {
+                        return;
+                    }
                     if (skipExisting && graph.TripleSearch(new List<string>() { elem }, new List<string>() { "prop:guessedDescription" }, null).Count > 0)
                     {
                         return;
@@ -296,7 +302,7 @@ namespace IFCtoRDF
                         inferenceTimeElement += elementDetailResult.inference_time;
                     }
 
-                    SemanticEnrichment.FindClosestMatchingMaterial(graph, elem, materialDef, confidenceThreshold, "prop:guessedMaterial");
+                    SemanticEnrichment.FindClosestMatchingMaterial(graph, elem, materialDef, confidenceThreshold);
                     SemanticEnrichment.FindClosestMatchingRealTasks(graph, elem, constructionTaskDef, confidenceThreshold);
 
                     var activities = graph.TripleSearch(null, new List<string>() { "prop:forElement" }, new List<string>() { elem }).Select(t => t.Item1).ToList();

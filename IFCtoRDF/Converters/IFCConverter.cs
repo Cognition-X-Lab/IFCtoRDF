@@ -16,6 +16,7 @@ using Xbim.Common.Step21;
 using Xbim.Common.XbimExtensions;
 using Xbim.Ifc;
 using Xbim.Ifc.Extensions;
+using Xbim.Ifc4.Interfaces;
 using Xbim.IO;
 using Xbim.ModelGeometry.Scene;
 
@@ -96,20 +97,26 @@ namespace IFCtoRDF
                 {
                     finalModel.Objects[materialAssign.Key].Properties.Add("Material", string.Join(",", materialAssign.Value));
                 }
-                else
-                {
-                    var compsMatchMats = finalModel.Objects.SelectMany(o => o.Value.Components).Where(c => c.Key == materialAssign.Key);
-                    foreach (var compsMatchMat in compsMatchMats)
-                    {
-                        compsMatchMat.Value.Properties.Add("Material", string.Join(",", materialAssign.Value));
-                    }
 
-                    if (compsMatchMats.Count() == 0)
-                    {
-                        // So far I noticed this related to IFCWINDOWSTYLE and IFCFURNISHINGTYPE
-                        // The materials part could be moved to within the object itself...
-                    }
-                }
+                // Keys not found here are type objects (e.g. IfcWindowStyle, IfcFurnishingType).
+                // Their materials could be pushed to instances via IfcRelDefinesByType if needed.
+
+                // DELETE ==========================
+                //else
+                //{
+                //    var compsMatchMats = finalModel.Objects.SelectMany(o => o.Value.Components).Where(c => c.Key == materialAssign.Key);
+                //    foreach (var compsMatchMat in compsMatchMats)
+                //    {
+                //        compsMatchMat.Value.Properties.Add("Material", string.Join(",", materialAssign.Value));
+                //    }
+
+                //    if (compsMatchMats.Count() == 0)
+                //    {
+                //        // So far I noticed this related to IFCWINDOWSTYLE and IFCFURNISHINGTYPE
+                //        // The materials part could be moved to within the object itself...
+                //    }
+                //}
+                // DELETE ==========================
             }
 
             finalModel.Properties.Add("Name", Path.GetFileNameWithoutExtension(model.FileName));
@@ -172,6 +179,8 @@ namespace IFCtoRDF
             List<XbimShapeInstance> shapeInstances = context.ShapeInstances().ToList();
 
             //Check all the instances
+            Dictionary<int, ComponentStyleInfo> styleLookup = BuildStyleLookup(model);
+
             Parallel.ForEach(shapeInstances, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, shapeInstance =>
             {
                 if (shapeInstance.RepresentationType != XbimGeometryRepresentationType.OpeningsAndAdditionsIncluded)
@@ -179,7 +188,7 @@ namespace IFCtoRDF
                     return;
                 }
 
-                GetComponentsAndMapToObject(flipTriangles, shapeInstance, objectDict, context);
+                GetComponentsAndMapToObject(flipTriangles, shapeInstance, objectDict, context, styleLookup);
             });
 
             // Next bit is for making the local center of all objects the origin:
@@ -191,7 +200,7 @@ namespace IFCtoRDF
             return objectDict;
         }
 
-        private static void GetComponentsAndMapToObject(bool flipTriangles, XbimShapeInstance shapeInstance, ConcurrentDictionary<string, ccBIMObject> objectDict, Xbim3DModelContext context)
+        private static void GetComponentsAndMapToObject(bool flipTriangles, XbimShapeInstance shapeInstance, ConcurrentDictionary<string, ccBIMObject> objectDict, Xbim3DModelContext context, Dictionary<int, ComponentStyleInfo> styleLookup)
         {
             var transfor = shapeInstance.Transformation; //Transformation matrix (location point inside)
 
@@ -236,11 +245,25 @@ namespace IFCtoRDF
                                     { "StyleLabel", shapeInstance.StyleLabel.ToString() },
                                     { "ShapeGeometryLabel", shapeInstance.ShapeGeometryLabel.ToString() }
                                 },
-                ID = shapeInstance.ShapeGeometryLabel.ToString(),
+                //ID = shapeInstance.ShapeGeometryLabel.ToString(),
+                ID = shapeInstance.InstanceLabel.ToString(),
                 Mesh = DMesh3Builder.Build<Vector3d, Index3i, Vector3d>(
                                         globalverts.Select(v => ConverterGeneral.VectorConverter(v)),
                                         triangles.Select(t => (new Index3i(flipTriangles ? t : t.Reverse().ToArray()))))
             };
+
+            // StyleLabel > 0 is a real IfcSurfaceStyle; <= 0 means xbim used a default style for the type
+            if (shapeInstance.StyleLabel > 0 && styleLookup.TryGetValue(shapeInstance.StyleLabel, out var styleInfo))
+            {
+                if (styleInfo.Material != null)
+                {
+                    objectComponent.Properties["Material"] = styleInfo.Material;
+                }
+                if (styleInfo.Colour != null)
+                {
+                    objectComponent.Properties["Colour"] = styleInfo.Colour;
+                }
+            }
 
             objectDict[shapeInstance.IfcProductLabel.ToString()].Components.TryAdd(objectComponent.ID.ToString(), objectComponent);
         }
@@ -1213,7 +1236,7 @@ namespace IFCtoRDF
                     }
                     if (matRel.RelatingMaterial is Xbim.Ifc2x3.MaterialResource.IfcMaterialLayerSetUsage)
                     {
-                        List<string> materials = ((Xbim.Ifc2x3.MaterialResource.IfcMaterialLayerSetUsage)matRel.RelatingMaterial).ForLayerSet.MaterialLayers.Select(m => m.Material.Name.Value.ToString()).ToList();
+                        List<string> materials = ((Xbim.Ifc2x3.MaterialResource.IfcMaterialLayerSetUsage)matRel.RelatingMaterial).ForLayerSet.MaterialLayers.Where(m => m.Material != null).Select(m => m.Material.Name.Value.ToString()).ToList();
                         foreach (var elem in matRel.RelatedObjects)
                         {
                             foreach (string matName in materials)
@@ -1229,7 +1252,7 @@ namespace IFCtoRDF
                     }
                     if (matRel.RelatingMaterial is Xbim.Ifc2x3.MaterialResource.IfcMaterialLayerSet)
                     {
-                        List<string> materials = ((Xbim.Ifc2x3.MaterialResource.IfcMaterialLayerSet)matRel.RelatingMaterial).MaterialLayers.Select(m => m.Material.Name.Value.ToString()).ToList();
+                        List<string> materials = ((Xbim.Ifc2x3.MaterialResource.IfcMaterialLayerSet)matRel.RelatingMaterial).MaterialLayers.Where(m => m.Material != null).     Select(m => m.Material.Name.Value.ToString()).ToList();
                         foreach (var elem in matRel.RelatedObjects)
                         {
                             foreach (string matName in materials)
@@ -1317,7 +1340,7 @@ namespace IFCtoRDF
                     }
                     if (matRel.RelatingMaterial is Xbim.Ifc4.MaterialResource.IfcMaterialLayerSetUsage)
                     {
-                        List<string> materials = ((Xbim.Ifc4.MaterialResource.IfcMaterialLayerSetUsage)matRel.RelatingMaterial).ForLayerSet.MaterialLayers.Select(m => m.Material.Name.Value.ToString()).ToList();
+                        List<string> materials = ((Xbim.Ifc4.MaterialResource.IfcMaterialLayerSetUsage)matRel.RelatingMaterial).ForLayerSet.MaterialLayers.Where(m => m.Material != null).Select(m => m.Material.Name.Value.ToString()).ToList();
                         foreach (var elem in matRel.RelatedObjects)
                         {
                             foreach (string matName in materials)
@@ -1333,7 +1356,7 @@ namespace IFCtoRDF
                     }
                     if (matRel.RelatingMaterial is Xbim.Ifc4.MaterialResource.IfcMaterialLayerSet)
                     {
-                        List<string> materials = ((Xbim.Ifc4.MaterialResource.IfcMaterialLayerSet)matRel.RelatingMaterial).MaterialLayers.Select(m => m.Material.Name.Value.ToString()).ToList();
+                        List<string> materials = ((Xbim.Ifc4.MaterialResource.IfcMaterialLayerSet)matRel.RelatingMaterial).MaterialLayers.Where(m => m.Material != null).Select(m => m.Material.Name.Value.ToString()).ToList();
                         foreach (var elem in matRel.RelatedObjects)
                         {
                             foreach (string matName in materials)
@@ -1421,7 +1444,7 @@ namespace IFCtoRDF
                     }
                     if (matRel.RelatingMaterial is Xbim.Ifc4x3.MaterialResource.IfcMaterialLayerSetUsage)
                     {
-                        List<string> materials = ((Xbim.Ifc4x3.MaterialResource.IfcMaterialLayerSetUsage)matRel.RelatingMaterial).ForLayerSet.MaterialLayers.Select(m => m.Material.Name.Value.ToString()).ToList();
+                        List<string> materials = ((Xbim.Ifc4x3.MaterialResource.IfcMaterialLayerSetUsage)matRel.RelatingMaterial).ForLayerSet.MaterialLayers.Where(m => m.Material != null).Select(m => m.Material.Name.Value.ToString()).ToList();
                         foreach (var elem in matRel.RelatedObjects)
                         {
                             foreach (string matName in materials)
@@ -1437,7 +1460,7 @@ namespace IFCtoRDF
                     }
                     if (matRel.RelatingMaterial is Xbim.Ifc4x3.MaterialResource.IfcMaterialLayerSet)
                     {
-                        List<string> materials = ((Xbim.Ifc4x3.MaterialResource.IfcMaterialLayerSet)matRel.RelatingMaterial).MaterialLayers.Select(m => m.Material.Name.Value.ToString()).ToList();
+                        List<string> materials = ((Xbim.Ifc4x3.MaterialResource.IfcMaterialLayerSet)matRel.RelatingMaterial).MaterialLayers.Where(m => m.Material != null).Select(m => m.Material.Name.Value.ToString()).ToList();
                         foreach (var elem in matRel.RelatedObjects)
                         {
                             foreach (string matName in materials)
@@ -1498,6 +1521,100 @@ namespace IFCtoRDF
                 }
                 wexBimFile.Close();
             }
+        }
+
+        // AI GENERATED: This class is used to store the material and colour information for a component style.
+
+        public class ComponentStyleInfo
+        {
+            public string Material;
+            public string Colour;
+        }
+
+        // Build once per model: StyleLabel -> (material name, colour)
+        private static Dictionary<int, ComponentStyleInfo> BuildStyleLookup(IfcStore model)
+        {
+            var lookup = new Dictionary<int, ComponentStyleInfo>();
+
+            // 1. Colour for every surface style
+            foreach (var surfaceStyle in model.Instances.OfType<IIfcSurfaceStyle>())
+            {
+                lookup[surfaceStyle.EntityLabel] = new ComponentStyleInfo
+                {
+                    Colour = GetSurfaceStyleColour(surfaceStyle)
+                };
+            }
+
+            // 2. Material name for styles that are defined through a material
+            //    IfcMaterial -> IfcMaterialDefinitionRepresentation -> IfcStyledRepresentation -> IfcStyledItem -> IfcSurfaceStyle
+            foreach (var matDefRep in model.Instances.OfType<IIfcMaterialDefinitionRepresentation>())
+            {
+                string matName = matDefRep.RepresentedMaterial?.Name.ToString();
+                if (string.IsNullOrWhiteSpace(matName))
+                {
+                    continue;
+                }
+
+                var styledItems = matDefRep.Representations.SelectMany(r => r.Items).OfType<IIfcStyledItem>();
+
+                foreach (var surfaceStyle in styledItems.SelectMany(GetSurfaceStyles))
+                {
+                    if (!lookup.TryGetValue(surfaceStyle.EntityLabel, out var info))
+                    {
+                        info = new ComponentStyleInfo { Colour = GetSurfaceStyleColour(surfaceStyle) };
+                        lookup[surfaceStyle.EntityLabel] = info;
+                    }
+
+                    // A style could be shared by several materials; keep them all
+                    if (info.Material == null)
+                    {
+                        info.Material = matName;
+                    }
+                    else if (!info.Material.Split(';').Contains(matName))
+                    {
+                        info.Material += ";" + matName;
+                    }
+                }
+            }
+
+            return lookup;
+        }
+
+        // Handles both IFC4 direct styles and the IFC2x3 IfcPresentationStyleAssignment wrapper
+        private static IEnumerable<IIfcSurfaceStyle> GetSurfaceStyles(IIfcStyledItem styledItem)
+        {
+            foreach (var style in styledItem.Styles)
+            {
+                if (style is IIfcSurfaceStyle surfaceStyle)
+                {
+                    yield return surfaceStyle;
+                }
+                else if (style is IIfcPresentationStyleAssignment assignment)
+                {
+                    foreach (var s in assignment.Styles.OfType<IIfcSurfaceStyle>())
+                    {
+                        yield return s;
+                    }
+                }
+            }
+        }
+
+        private static string GetSurfaceStyleColour(IIfcSurfaceStyle surfaceStyle)
+        {
+            IIfcColourRgb colour = null;
+
+            // Rendering derives from Shading, so check diffuse first, then fall back to surface colour
+            var rendering = surfaceStyle.Styles.OfType<IIfcSurfaceStyleRendering>().FirstOrDefault();
+            if (rendering != null)
+            {
+                colour = rendering.DiffuseColour as IIfcColourRgb;
+            }
+            if (colour == null)
+            {
+                colour = surfaceStyle.Styles.OfType<IIfcSurfaceStyleShading>().Select(s => s.SurfaceColour).FirstOrDefault(c => c != null);
+            }
+
+            return colour == null ? null : string.Join(",", colour.Red.Value.ToString(), colour.Green.Value.ToString(), colour.Blue.Value.ToString());
         }
     }
 
